@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AcolheSUS Salvador — Demonstração do sistema</title>
+<meta name="description" content="Demonstração interativa do AcolheSUS: paciente, recepção, sala de espera, triagem, prontuário e rede de UPAs de Salvador.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231351b4'/><path d='M50 22v56M22 50h56' stroke='white' stroke-width='14' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --azul:#1351b4; --azul-esc:#0a2a5e; --azul-clr:#3b82f6; --azul-50:#eff5ff;
+  --verde:#059669; --verde-50:#ecfdf5; --amarelo:#f59e0b; --vermelho:#dc2626; --laranja:#f97316;
+  --tinta:#0f172a; --cinza:#475569; --cinza-clr:#94a3b8; --linha:#e2e8f0; --fundo:#f6f8fc;
+  --raio:16px; --sombra:0 18px 40px -22px rgba(10,42,94,.4); color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--fundo);color:var(--tinta);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amarelo);outline-offset:2px;border-radius:6px}
+.container{max-width:1240px;margin:0 auto;padding:0 22px}
+.skip{position:absolute;left:-999px;background:var(--tinta);color:#fff;padding:10px 16px;z-index:200}
+.skip:focus{left:0}
+.escondido{display:none !important}
+
+/* barra */
+.barra-top{background:var(--azul-esc);color:#c7d7f5;font-size:.75rem}
+.barra-top .container{display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:38px;flex-wrap:wrap}
+.barra-top b{color:#fff;letter-spacing:.08em}
+.barra-top .dir{display:flex;gap:16px;flex-wrap:wrap}
+.barra-top button:hover{color:#fff;text-decoration:underline}
+
+/* cabeçalho */
+.cab{background:#fff;border-bottom:1px solid var(--linha);position:sticky;top:0;z-index:60}
+.cab .container{display:flex;align-items:center;gap:20px;min-height:68px;flex-wrap:wrap}
+.marca{display:flex;align-items:center;gap:12px;font-weight:800;color:var(--azul-esc)}
+.marca .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,var(--azul-clr),var(--azul));display:grid;place-items:center;color:#fff;flex:none}
+.marca small{display:block;font-size:.68rem;font-weight:500;color:var(--cinza)}
+.cab .dir{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.select-unidade{display:flex;align-items:center;gap:8px;background:var(--fundo);border:1px solid var(--linha);border-radius:12px;padding:8px 12px;font-size:.82rem}
+.select-unidade select{border:0;background:transparent;font-weight:600;max-width:230px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;font-size:.76rem;font-weight:700}
+.pill-ok{background:var(--verde-50);color:var(--verde)}
+.pill-ok i{width:8px;height:8px;border-radius:50%;background:var(--verde);animation:pulsa 1.6s infinite}
+@keyframes pulsa{0%,100%{opacity:1}50%{opacity:.25}}
+.pill-sessao{background:var(--azul-50);color:var(--azul);font-variant-numeric:tabular-nums}
+.pill-link{background:#fff;border:1px solid var(--linha);color:var(--azul)}
+.pill-link:hover{border-color:var(--azul)}
+
+/* abas */
+.abas{background:var(--azul);position:sticky;top:68px;z-index:55;box-shadow:0 6px 18px -14px #000}
+.abas .container{display:flex;gap:4px;overflow-x:auto;padding:0 22px}
+.aba{padding:14px 18px;color:#cfe0ff;font-weight:600;font-size:.86rem;white-space:nowrap;border-bottom:3px solid transparent;display:inline-flex;align-items:center;gap:8px}
+.aba:hover{color:#fff}
+.aba.on{color:#fff;background:rgba(255,255,255,.1);border-bottom-color:#fff}
+@media(max-width:820px){.abas{top:0;position:relative}.cab{position:relative}}
+
+/* painel */
+main{padding:30px 0 70px}
+.view{display:none;animation:entra .35s ease}
+.view.on{display:block}
+@keyframes entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.cabeca-view{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:24px}
+.cabeca-view h1{font-size:1.45rem;font-weight:900;letter-spacing:-.02em}
+.cabeca-view p{color:var(--cinza);font-size:.9rem}
+.grade{display:grid;gap:20px}
+.g-5-7{grid-template-columns:5fr 7fr}
+.g-7-5{grid-template-columns:7fr 5fr}
+.g-4-8{grid-template-columns:4fr 8fr}
+.g-2{grid-template-columns:1fr 1fr}
+.g-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:1000px){.g-5-7,.g-7-5,.g-4-8{grid-template-columns:1fr}}
+@media(max-width:700px){.g-2,.g-3{grid-template-columns:1fr}}
+
+.painel{background:#fff;border:1px solid var(--linha);border-radius:var(--raio);padding:24px}
+.painel > h2{font-size:1.02rem;font-weight:800;display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.painel .desc{font-size:.84rem;color:var(--cinza);margin-bottom:18px}
+.rotulo{display:block;font-size:.76rem;font-weight:700;color:var(--cinza);margin-bottom:6px;letter-spacing:.01em}
+.campo{width:100%;padding:11px 13px;border:1px solid var(--linha);border-radius:11px;background:#fff;font-size:.9rem;transition:.15s}
+.campo:focus{border-color:var(--azul-clr);box-shadow:0 0 0 4px rgba(59,130,246,.14);outline:none}
+textarea.campo{resize:vertical}
+.grupo{margin-bottom:15px}
+.linha2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){.linha2{grid-template-columns:1fr}}
+.checks{display:flex;flex-wrap:wrap;gap:10px;font-size:.82rem}
+.checks label{display:flex;align-items:center;gap:7px;background:var(--fundo);border:1px solid var(--linha);padding:8px 12px;border-radius:10px;cursor:pointer}
+.checks label:has(input:checked){border-color:var(--azul);background:var(--azul-50);color:var(--azul-esc);font-weight:600}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:12px 20px;border-radius:12px;font-weight:700;font-size:.9rem;transition:.18s}
+.btn-p{background:var(--azul);color:#fff;box-shadow:0 14px 26px -16px rgba(19,81,180,1)}
+.btn-p:hover{background:var(--azul-esc);transform:translateY(-1px)}
+.btn-v{background:var(--verde);color:#fff}
+.btn-v:hover{background:#047857}
+.btn-g{background:#fff;border:1px solid var(--linha);color:var(--azul-esc)}
+.btn-g:hover{border-color:var(--azul)}
+.btn-bloco{width:100%}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+.msg{font-size:.85rem;font-weight:600;margin-top:12px;min-height:20px}
+.msg.ok{color:var(--verde)}
+.msg.erro{color:var(--vermelho)}
+
+/* cartões de UPA */
+.upas{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:640px){.upas{grid-template-columns:1fr}}
+.upa{border:1px solid var(--linha);border-radius:14px;padding:16px;background:#fff;transition:.2s}
+.upa.atual{border:2px solid var(--azul);background:var(--azul-50)}
+.upa.sel{border-color:var(--verde);box-shadow:0 0 0 3px var(--verde-50)}
+.upa .topo{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.upa b{font-size:.9rem;display:block}
+.upa .end{font-size:.74rem;color:var(--cinza)}
+.upa .dados{display:flex;gap:18px;margin-top:12px;font-size:.78rem;color:var(--cinza)}
+.upa .dados b{display:block;font-size:1.05rem;color:var(--tinta);font-variant-numeric:tabular-nums}
+.upa .dados .dest{color:var(--azul)}
+.barra{height:7px;border-radius:99px;background:#e6ecf5;overflow:hidden;margin-top:12px}
+.barra i{display:block;height:100%;border-radius:99px;transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.tag{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.t-verde{background:var(--verde-50);color:var(--verde)}
+.t-amarelo{background:#fff7e6;color:#b45309}
+.t-vermelho{background:#fef2f2;color:var(--vermelho)}
+.t-azul{background:var(--azul-50);color:var(--azul)}
+.f-verde{background:var(--verde)} .f-amarelo{background:var(--amarelo)} .f-vermelho{background:var(--vermelho)} .f-azul{background:var(--azul-clr)}
+
+/* paciente */
+.senha-hero{background:linear-gradient(150deg,var(--azul),var(--azul-esc));color:#fff;border-radius:20px;padding:26px;box-shadow:var(--sombra)}
+.senha-hero .topo{display:flex;justify-content:space-between;font-size:.76rem;opacity:.85;font-weight:600}
+.senha-hero b.num{display:block;font-size:3.2rem;font-weight:900;line-height:1.05;letter-spacing:-.02em}
+.senha-hero .rodape{display:flex;gap:34px;margin-top:16px}
+.senha-hero .rodape span{font-size:.76rem;opacity:.85;display:block}
+.senha-hero .rodape strong{font-size:1.5rem;font-variant-numeric:tabular-nums}
+.progresso{height:9px;border-radius:99px;background:rgba(255,255,255,.22);overflow:hidden;margin-top:20px}
+.progresso i{display:block;height:100%;background:#fff;border-radius:99px;transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.fila-lista{display:grid;gap:9px}
+.fila-linha{display:flex;justify-content:space-between;align-items:center;background:var(--fundo);border-radius:11px;padding:11px 14px;font-size:.85rem}
+.fila-linha b{font-variant-numeric:tabular-nums;font-size:1rem}
+.qr{display:grid;grid-template-columns:repeat(11,1fr);gap:2px;width:92px;height:92px;padding:6px;background:#fff;border:1px solid var(--linha);border-radius:12px;flex:none}
+.qr i{background:#0f172a;border-radius:1px}
+.qr i.v{background:transparent}
+.aviso{display:flex;gap:12px;align-items:flex-start;border-radius:13px;padding:14px 16px;font-size:.85rem;margin-top:16px}
+.aviso-info{background:var(--azul-50);border:1px solid #cfe0ff;color:var(--azul-esc)}
+.aviso-ok{background:var(--verde-50);border:1px solid #b6ead3;color:#065f46}
+.aviso-at{background:#fff7e6;border:1px solid #fde3a7;color:#92400e}
+.aviso-perigo{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+
+/* lista de espera recepção */
+.tabela{width:100%;border-collapse:collapse;font-size:.85rem}
+.tabela th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza);padding:8px 10px;border-bottom:1px solid var(--linha)}
+.tabela td{padding:11px 10px;border-bottom:1px solid var(--linha);vertical-align:middle}
+.tabela tr:last-child td{border-bottom:0}
+.tabela tbody tr:hover{background:var(--fundo)}
+.dot-p{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
+.vazio{text-align:center;color:var(--cinza-clr);font-size:.85rem;padding:26px 10px}
+
+/* monitor */
+.monitor{background:#0b1220;border-radius:22px;padding:30px;color:#fff}
+.monitor .topo{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.monitor .topo h2{font-size:1.3rem;font-weight:900}
+.monitor .topo p{color:#8fa4c4;font-size:.85rem}
+.relogio{font-size:2.6rem;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.chamada{background:#131d33;border-left:8px solid var(--amarelo);border-radius:18px;padding:30px}
+.chamada .rot{color:#fcd34d;font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
+.chamada .nome{color:#8fa4c4;font-size:.82rem;margin-top:14px}
+.chamada .num{font-size:5.4rem;font-weight:900;line-height:1;letter-spacing:-.03em}
+.chamada .detalhes{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+@media(max-width:600px){.chamada .num{font-size:3.6rem}.chamada .detalhes{grid-template-columns:1fr}}
+.chamada .detalhes span{color:#8fa4c4;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}
+.chamada .detalhes strong{display:block;font-size:1.25rem;margin-top:2px}
+.vlibras{background:#131d33;border-radius:18px;padding:24px;text-align:center}
+.vlibras .caixa{background:#1d2a45;border-radius:14px;padding:30px 16px;margin:16px 0}
+.vlibras .caixa .emoji{font-size:3.4rem}
+.legenda-manchester{display:flex;flex-wrap:wrap;gap:16px;margin-top:20px;font-size:.8rem;font-weight:700}
+.legenda-manchester span{display:inline-flex;align-items:center;gap:7px}
+
+/* triagem */
+.cls{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media(max-width:820px){.cls{grid-template-columns:repeat(2,1fr)}}
+.cls button{border-radius:14px;padding:16px 10px;text-align:center;border:3px solid transparent;transition:.18s;color:#fff}
+.cls button .simbolo{display:block;font-size:1.6rem;line-height:1}
+.cls button b{display:block;font-size:.86rem;margin-top:6px}
+.cls button span{display:block;font-size:.72rem;opacity:.92}
+.cls button small{display:block;font-size:.7rem;font-weight:800;margin-top:5px}
+.cls button.sel{border-color:var(--tinta);transform:translateY(-3px);box-shadow:var(--sombra)}
+.cls button:hover{transform:translateY(-3px)}
+.vitais{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vital{background:var(--fundo);border-radius:12px;padding:13px}
+.vital span{font-size:.72rem;color:var(--cinza);display:block}
+.vital b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.vital.alerta{background:#fef2f2}
+.vital.alerta b{color:var(--vermelho)}
+
+/* prontuário */
+.laudo{border:1px solid var(--linha);border-radius:13px;padding:15px;margin-bottom:12px}
+.laudo .l1{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.88rem}
+.laudo .l1 span{color:var(--cinza);font-size:.78rem}
+.laudo p{font-size:.85rem;margin-top:7px}
+.laudo small{color:var(--cinza);font-size:.74rem;display:block;margin-top:6px}
+.prescricao{background:var(--fundo);border-radius:12px;padding:14px;font-size:.85rem;display:grid;gap:7px}
+.rodape-medico{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+
+/* toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--tinta);color:#fff;padding:13px 20px;border-radius:13px;font-size:.86rem;font-weight:600;box-shadow:0 20px 40px -18px #000;opacity:0;pointer-events:none;transition:.3s;z-index:300;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--verde)} .toast.erro{background:var(--vermelho)}
+
+.rev{opacity:0;transform:translateY(14px);transition:.5s ease}
+.rev.vis{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.rev{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+<a class="skip" href="#conteudo">Ir para o conteúdo</a>
+
+<div class="barra-top">
+  <div class="container">
+    <div><b>ACOLHESUS</b> · Sistema metropolitano de acolhimento e gestão de fluxo · Salvador/BA</div>
+    <div class="dir">
+      <button id="btn-contraste" type="button">◐ Alto contraste</button>
+      <button id="btn-fonte" type="button">A+ Aumentar fonte</button>
+      <button id="btn-vlibras" type="button">🤟 VLibras</button>
+    </div>
+  </div>
+</div>
+
+<header class="cab">
+  <div class="container">
+    <a class="marca" href="index.html">
+      <span class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span>AcolheSUS<small>Sistema metropolitano de filas</small></span>
+    </a>
+    <div class="dir">
+      <label class="select-unidade">
+        <span class="escondido">Unidade</span>
+        <select id="unidade" aria-label="Unidade de saúde">
+          <option value="brotas">UPA 24h Brotas</option>
+          <option value="barris">UPA 24h Barris</option>
+          <option value="sanmartin">UPA 24h San Martin</option>
+          <option value="itapua">UPA 24h Itapuã</option>
+        </select>
+      </label>
+      <span class="pill pill-ok"><i></i> Sistema operante</span>
+      <span class="pill pill-sessao">Sessão segura: <b id="sessao">15:00</b></span>
+      <a class="pill pill-link" href="index.html">← Voltar ao site</a>
+    </div>
+  </div>
+</header>
+
+<nav class="abas" aria-label="Perfis do sistema">
+  <div class="container">
+    <a class="aba on" href="#paciente" data-v="paciente">🙋 Paciente</a>
+    <a class="aba" href="#recepcao" data-v="recepcao">🖥️ Recepção</a>
+    <a class="aba" href="#monitor" data-v="monitor">📺 Sala de espera</a>
+    <a class="aba" href="#triagem" data-v="triagem">🩺 Triagem</a>
+    <a class="aba" href="#prontuario" data-v="prontuario">📋 Prontuário</a>
+    <a class="aba" href="#rede" data-v="rede">🗺️ Rede de UPAs</a>
+  </div>
+</nav>
+
+<main id="conteudo" class="container">
+
+  <!-- PACIENTE -->
+  <section class="view on" id="v-paciente" aria-labelledby="t-paciente">
+    <div class="cabeca-view">
+      <div>
+        <h1 id="t-paciente">Portal do paciente</h1>
+        <p>Escaneie o QR Code da unidade ou faça o check-in pelo navegador — sem instalar aplicativo.</p>
+      </div>
+      <span class="pill pill-azul t-azul" id="pac-unidade">UPA 24h Brotas</span>
+    </div>
+
+    <div class="grade g-5-7">
+      <!-- check-in -->
+      <div>
+        <div class="painel rev" id="painel-checkin">
+          <h2>Check-in digital</h2>
+          <p class="desc">Informe seus dados para entrar na fila da unidade selecionada.</p>
+          <div class="grupo">
+            <label class="rotulo" for="p-cpf">CPF ou Cartão Nacional de Saúde (CNS)</label>
+            <input id="p-cpf" class="campo" placeholder="000.000.000-00 ou 15 dígitos">
+          </div>
+          <div class="grupo">
+            <label class="rotulo" for="p-nome">Nome completo</label>
+            <input id="p-nome" class="campo" placeholder="Nome como no documento">
+          </div>
+          <div class="linha2 grupo">
+            <div>
+              <label class="rotulo" for="p-tel">Telefone (WhatsApp)</label>
+              <input id="p-tel" class="campo" placeholder="(71) 99999-9999">
+            </div>
+            <div>
+              <label class="rotulo" for="p-queixa">Queixa principal</label>
+              <select id="p-queixa" class="campo">
+                <option>Dor aguda / mal-estar</option>
+                <option>Febre persistente</option>
+                <option>Falta de ar</option>
+                <option>Trauma / queda</option>
+                <option>Outros sintomas</option>
+              </select>
+            </div>
+          </div>
+          <div class="grupo">
+            <label class="rotulo">Necessidade especial ou prioridade legal</label>
+            <div class="checks">
+              <label><input type="checkbox" value="Idoso (60+)"> Idoso (60+)</label>
+              <label><input type="checkbox" value="Gestante/lactante"> Gestante/lactante</label>
+              <label><input type="checkbox" value="PcD / mobilidade"> PcD / mobilidade</label>
+              <label><input type="checkbox" value="Surdo/mudo"> Surdo/mudo</label>
+            </div>
+          </div>
+          <button id="p-emitir" class="btn btn-p btn-bloco" type="button">🎫 Emitir senha e enviar QR Code</button>
+          <p class="msg" id="p-msg" role="status"></p>
+        </div>
+
+        <div class="painel rev" id="painel-ticket" style="display:none">
+          <h2>Seu acompanhamento</h2>
+          <p class="desc">Esta tela atualiza automaticamente conforme a fila anda.</p>
+          <div class="senha-hero">
+            <div class="topo"><span>Sua senha</span><span id="tk-unidade">UPA 24h Brotas</span></div>
+            <b class="num" id="tk-senha">TR-000</b>
+            <div class="rodape">
+              <div><span>Tempo estimado</span><strong id="tk-tempo">-- min</strong></div>
+              <div><span>Posição</span><strong id="tk-pos">--</strong></div>
+              <div><span>Prioridade</span><strong id="tk-prioridade" style="font-size:1rem">--</strong></div>
+            </div>
+            <div class="progresso"><i id="tk-progresso" style="width:0%"></i></div>
+          </div>
+          <div class="aviso aviso-ok" id="tk-aviso">✅ Check-in confirmado. Avisaremos quando estiver perto de ser chamado.</div>
+          <div class="aviso aviso-at escondido" id="tk-redir">
+            <span>🧭</span>
+            <div>
+              <b>Fila longa nesta unidade.</b>
+              <p id="tk-redir-txt" style="font-size:.84rem"></p>
+              <button class="btn btn-g" id="tk-redir-btn" type="button" style="margin-top:10px">Aceitar redirecionamento</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:18px;flex-wrap:wrap">
+            <div class="qr" id="tk-qr" aria-hidden="true"></div>
+            <p style="font-size:.82rem;color:var(--cinza);flex:1;min-width:180px">Guarde este QR Code: ele identifica sua senha no totem e na recepção.</p>
+          </div>
+          <button class="btn btn-g btn-bloco" id="p-novo" type="button" style="margin-top:16px">Fazer novo check-in</button>
+        </div>
+      </div>
+
+      <!-- fila + rede -->
+      <div>
+        <div class="painel rev">
+          <h2>📊 Fila desta unidade agora</h2>
+          <p class="desc">Quantidade de pacientes aguardando por classificação de risco.</p>
+          <div class="fila-lista" id="p-fila"></div>
+          <div class="aviso aviso-info">
+            <span>ⓘ</span>
+            <p>O tempo estimado é recalculado a cada minuto com base na gravidade dos casos e no ritmo real de atendimento da equipe.</p>
+          </div>
+        </div>
+
+        <div class="painel rev" style="margin-top:20px">
+          <h2>🗺️ Unidades próximas</h2>
+          <p class="desc">Toque em uma unidade para selecioná-la antes do check-in.</p>
+          <div class="upas" id="p-upas"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECEPÇÃO -->
+  <section class="view" id="v-recepcao" aria-labelledby="t-recepcao">
+    <div class="cabeca-view">
+      <div>
+        <h1 id="t-recepcao">Recepção e acolhimento</h1>
+        <p>Check-in presencial, emissão de senha e painel da rede para encaminhamento.</p>
+      </div>
+      <span class="pill t-azul">Totem / balcão</span>
+    </div>
+
+    <div class="grade g-5-7">
+      <div class="painel rev">
+        <h2>Check-in presencial</h2>
+        <p class="desc">Atende quem chegou sem celular ou prefere o balcão.</p>
+        <div class="grupo">
+          <label class="rotulo" for="r-cpf">CPF ou CNS</label>
+          <input id="r-cpf" class="campo" placeholder="000.000.000-00 ou 15 dígitos">
+        </div>
+        <div class="grupo">
+          <label class="rotulo" for="r-nome">Nome completo</label>
+          <input id="r-nome" class="campo" placeholder="Nome como no documento">
+        </div>
+        <div class="grupo">
+          <label class="rotulo" for="r-queixa">Queixa principal</label>
+          <select id="r-queixa" class="campo">
+            <option>Dor aguda / mal-estar</option>
+            <option>Febre persistente</option>
+            <option>Falta de ar</option>
+            <option>Trauma / queda</option>
+            <option>Outros sintomas</option>
+          </select>
+        </div>
+        <div class="grupo">
+          <label class="rotulo">Prioridade legal</label>
+          <div class="checks">
+            <label><input type="checkbox" value="Idoso (60+)"> Idoso (60+)</label>
+            <label><input type="checkbox" value="Gestante/lactante"> Gestante/lactante</label>
+            <label><input type="checkbox" value="PcD / mobilidade"> PcD / mobilidade</label>
+            <label><input type="checkbox" value="Surdo/mudo"> Surdo/mudo</label>
+          </div>
+        </div>
+        <button id="r-emitir" class="btn btn-p btn-bloco" type="button">🎫 Emitir senha</button>
+        <p class="msg" id="r-msg" role="status"></p>
+
+        <div style="margin-top:20px;padding:16px;background:var(--fundo);border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div>
+            <span style="font-size:.72rem;color:var(--cinza);font-weight:700">Última senha emitida</span>
+            <p style="font-size:1.25rem;font-weight:900;color:var(--azul-esc)"><span id="r-ultima">—</span></p>
+          </div>
+          <button class="btn btn-g" id="r-imprimir" type="button">🖨️ Reimprimir</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="painel rev">
+          <h2>📋 Fila de espera da unidade</h2>
+          <p class="desc">Pacientes aguardando triagem ou atendimento, em ordem de prioridade.</p>
+          <div style="overflow-x:auto">
+            <table class="tabela">
+              <thead><tr><th>Senha</th><th>Paciente</th><th>Prioridade</th><th>Chegada</th><th>Ação</th></tr></thead>
+              <tbody id="r-tabela"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="painel rev" style="margin-top:20px">
+          <h2>🔀 Encaminhamento inteligente</h2>
+          <p class="desc">Compare a demanda das unidades antes de sugerir um desvio.</p>
+          <div class="upas" id="r-upas"></div>
+          <p class="msg" id="r-redir-msg" role="status"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MONITOR -->
+  <section class="view" id="v-monitor" aria-labelledby="t-monitor">
+    <div class="cabeca-view">
+      <div>
+        <h1 id="t-monitor">Painel da sala de espera</h1>
+        <p>Chamada acessível: cor, forma, texto e tradução em Libras.</p>
+      </div>
+      <span class="pill t-azul" id="mon-unidade">UPA 24h Brotas</span>
+    </div>
+
+    <div class="monitor rev">
+      <div class="topo">
+        <div>
+          <h2 id="mon-titulo">UPA 24h Brotas — Sala de espera</h2>
+          <p>Classificação de risco Manchester · Salvador - BA</p>
+        </div>
+        <p class="relogio" id="mon-relogio">00:00:00</p>
+      </div>
+
+      <div class="grade g-7-5">
+        <div class="chamada" id="mon-chamada">
+          <span class="rot">Chamando agora</span>
+          <p class="nome">Paciente / senha</p>
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <h3 class="num" id="mon-num">M-042</h3>
+            <span class="tag t-amarelo" id="mon-prioridade">◆ Amarelo · urgente</span>
+          </div>
+          <div class="detalhes">
+            <div><span>Local / destino</span><strong id="mon-sala">Consultório 03</strong><small style="color:#8fa4c4" id="mon-ala">Ala médica B · térreo</small></div>
+            <div><span>Profissional</span><strong>Dr. Roberto Lima</strong><small style="color:#8fa4c4">Clínica geral · CRM-BA 19842</small></div>
+          </div>
+          <button class="btn btn-p" id="mon-proximo" type="button" style="margin-top:24px">▶ Chamar próximo paciente</button>
+        </div>
+
+        <div class="vlibras">
+          <div style="display:flex;justify-content:space-between;font-size:.76rem">
+            <span style="color:#7db3ff;font-weight:700">🤟 VLibras integrado</span>
+            <span style="color:#34d399;font-weight:700">Tradução ativa</span>
+          </div>
+          <div class="caixa">
+            <div class="emoji">🤟</div>
+            <p style="font-weight:700;margin-top:8px">Intérprete virtual</p>
+            <p style="color:#8fa4c4;font-size:.84rem" id="mon-libras">Sinalizando a senha M-042</p>
+          </div>
+          <p style="font-size:.85rem;color:#c7d7f5">Dirija-se à porta do <b id="mon-sala2">Consultório 03</b> com seu documento.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:22px;background:#131d33;border-radius:14px;padding:16px;font-size:.78rem">
+        <b style="color:#8fa4c4">Legenda do protocolo Manchester (atendimento por gravidade)</b>
+        <div class="legenda-manchester">
+          <span style="color:#f87171">★ 1 Emergência (imediato)</span>
+          <span style="color:#fb923c">▲ 2 Muito urgente (10 min)</span>
+          <span style="color:#fde047">◆ 3 Urgente (60 min)</span>
+          <span style="color:#4ade80">● 4 Pouco urgente (120 min)</span>
+          <span style="color:#60a5fa">■ 5 Não urgente (240 min)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRIAGEM -->
+  <section class="view" id="v-triagem" aria-labelledby="t-triagem">
+    <div class="cabeca-view">
+      <div>
+        <h1 id="t-triagem">Posto de triagem e classificação</h1>
+        <p>Enfermeiro responsável: Carlos Alberto (COREN-BA 84210) · Sala 01</p>
+      </div>
+      <span class="pill t-azul">Enfermagem</span>
+    </div>
+
+    <div class="grade g-4-8">
+      <div>
+        <div class="painel rev">
+          <span class="rotulo">Paciente em atendimento</span>
+          <h2 style="font-size:1.1rem" id="tr-nome">M-042 · Marcos Silva Santos</h2>
+          <p style="font-size:.82rem;color:var(--cinza)" id="tr-dados">48 anos · CNS 704.281.992.100</p>
+        </div>
+
+        <div class="painel rev" style="margin-top:20px">
+          <h2>Sinais vitais</h2>
+          <p class="desc">Registro rápido dos dados aferidos.</p>
+          <div class="vitais">
+            <div class="vital"><span>Pressão arterial</span><b>150 / 95 mmHg</b></div>
+            <div class="vital"><span>Saturação O₂</span><b>96% ar amb.</b></div>
+            <div class="vital alerta"><span>Temperatura</span><b>38,4 °C · febre</b></div>
+            <div class="vital"><span>Glicemia capilar</span><b>118 mg/dL</b></div>
+          </div>
+        </div>
+
+        <div class="aviso aviso-perigo rev" style="margin-top:20px">
+          <span>⚠️</span>
+          <div><b>Alergia registrada (RNDS)</b>
+            <p style="font-size:.85rem">Alergia severa a <b>dipirona</b> e derivados de sulfas.</p></div>
+        </div>
+      </div>
+
+      <div class="painel rev">
+        <h2>Classificação de risco Manchester</h2>
+        <p class="desc">Escolha a prioridade. Cor, forma e tempo máximo aparecem juntos para não depender apenas da cor.</p>
+        <div class="cls" id="tr-cls"></div>
+
+        <div class="grupo" style="margin-top:22px">
+          <label class="rotulo">Discriminador clínico</label>
+          <p style="font-size:.88rem;background:var(--fundo);padding:12px;border-radius:11px">Dor torácica moderada associada a pico febril agudo.</p>
+        </div>
+        <div class="grupo">
+          <label class="rotulo" for="tr-obs">Observações clínicas da triagem</label>
+          <textarea id="tr-obs" class="campo" rows="3" placeholder="Observações clínicas da triagem..."></textarea>
+        </div>
+        <div class="rodape-medico">
+          <p class="msg" id="tr-msg" style="margin-right:auto" role="status"></p>
+          <button class="btn btn-g" type="button">Cancelar</button>
+          <button class="btn btn-p" id="tr-confirmar" type="button">➤ Confirmar e encaminhar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRONTUÁRIO -->
+  <section class="view" id="v-prontuario" aria-labelledby="t-prontuario">
+    <div class="cabeca-view">
+      <div>
+        <h1 id="t-prontuario">Prontuário integrado <span class="tag t-verde" style="vertical-align:middle">Autenticado LGPD</span></h1>
+        <p>Paciente: Marcos Silva Santos · CPF ***.392.185-**</p>
+      </div>
+      <span class="pill pill-sessao">Sessão segura: <b id="sessao2">15:00</b></span>
+    </div>
+
+    <div class="grade g-7-5">
+      <div>
+        <div class="painel rev">
+          <h2>🔬 Exames e laudos recentes na rede SUS</h2>
+          <p class="desc">Histórico clínico unificado, sem repetir exames já realizados.</p>
+          <div class="laudo">
+            <div class="l1"><b>Raio-X de tórax (PA e perfil)</b><span>18/05/2024 · UPA Barris</span></div>
+            <p>Conclusão: sem sinais de consolidação ou pneumotórax. Trama vascular preservada.</p>
+            <small>Dr. Fernando Costa (CRM-BA 14209) · Certificado ICP-Brasil</small>
+          </div>
+          <div class="laudo">
+            <div class="l1"><b>Hemograma completo + PCR</b><span>12/03/2024 · Lab Central Salvador</span></div>
+            <p>Leucócitos 7.200/mm³ · PCR 1,2 mg/L (normal) · Plaquetas 240.000</p>
+            <small>Dra. Juliana Neves (CRBM-BA 3192)</small>
+          </div>
+        </div>
+
+        <div class="painel rev" style="margin-top:20px">
+          <h2>💉 Vacinação e alergias</h2>
+          <div class="grade g-2" style="margin-top:14px">
+            <div style="background:var(--verde-50);border-radius:13px;padding:15px;font-size:.86rem">
+              <b>Vacinação RNDS</b>
+              <p>Covid-19 bivalente: em dia</p>
+              <p>Influenza 2024: aplicada</p>
+            </div>
+            <div style="background:#fef2f2;border-radius:13px;padding:15px;font-size:.86rem">
+              <b>Alergias clínicas severas</b>
+              <p>• Dipirona (hipersensibilidade)</p>
+              <p>• Sulfametoxazol</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="painel rev">
+        <h2>✎ Atendimento e conduta médica</h2>
+        <p class="desc">Preenchimento e assinatura digital.</p>
+        <div class="grupo">
+          <label class="rotulo" for="pr-cid">Hipótese diagnóstica (CID-10)</label>
+          <input id="pr-cid" class="campo" value="R07.4 - Dor torácica não especificada">
+        </div>
+        <div class="grupo">
+          <label class="rotulo" for="pr-evolucao">Evolução clínica / anamnese</label>
+          <textarea id="pr-evolucao" class="campo" rows="5">Desconforto torácico há 6 horas, com tosse seca e febre. Bulhas rítmicas normofonéticas, sem sopros. Murmúrio vesicular presente bilateralmente, sem ruídos adventícios.</textarea>
+        </div>
+        <div class="grupo">
+          <label class="rotulo">Prescrição eletrônica</label>
+          <div class="prescricao">
+            <p>1. Paracetamol 750 mg · 1 comprimido VO a cada 6 h se dor ou febre</p>
+            <p>2. Solução fisiológica 0,9% 500 ml · EV agora</p>
+          </div>
+        </div>
+        <button class="btn btn-v btn-bloco" id="pr-finalizar" type="button">✔ Finalizar e enviar receita ao paciente</button>
+        <p class="msg" id="pr-msg" role="status"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- REDE -->
+  <section class="view" id="v-rede" aria-labelledby="t-rede">
+    <div class="cabeca-view">
+      <div>
+        <h1 id="t-rede">Rede de UPAs em tempo real</h1>
+        <p>Monitoramento da demanda para redirecionamento inteligente.</p>
+      </div>
+      <span class="pill pill-ok"><i></i> Atualizado agora</span>
+    </div>
+
+    <div class="grade g-4-8">
+      <div class="painel rev">
+        <h2>Resumo da rede</h2>
+        <p class="desc">Indicadores consolidados das quatro unidades.</p>
+        <div class="fila-lista" id="rede-resumo"></div>
+        <div class="aviso aviso-info" id="rede-desvio" style="margin-top:18px">
+          <span>ⓘ</span><p id="rede-desvio-txt">Calculando recomendação de desvio...</p>
+        </div>
+      </div>
+      <div class="painel rev">
+        <h2>🗺️ Unidades monitoradas</h2>
+        <p class="desc">Ocupação, tempo médio e status de cada unidade.</p>
+        <div class="upas" id="rede-upas"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer style="background:#0b1a33;color:#93a7c7;padding:30px 0;font-size:.82rem">
+  <div class="container" style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <span>Projeto Hackathon · André Scaldaferri, João Victor Dantas e Gustavo do Rosário.</span>
+    <span>Todos os dados são fictícios, para demonstração.</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var d=document, $=function(id){return d.getElementById(id)};
+
+  /* ============ DADOS ============ */
+  var UPAS={
+    brotas:{nome:"UPA 24h Brotas", end:"Rua das Pitangueiras, Brotas", espera:28, ocupacao:65, dist:"esta unidade", x:0},
+    barris:{nome:"UPA 24h Barris", end:"Av. Beira Lima, Barris", espera:14, ocupacao:30, dist:"4,2 km", x:1},
+    sanmartin:{nome:"UPA 24h San Martin", end:"Rua Ferreira Santos, San Martin", espera:52, ocupacao:88, dist:"7,8 km", x:2},
+    itapua:{nome:"UPA 24h Itapuã", end:"Rua Aristides Milton, Itapuã", espera:31, ocupacao:70, dist:"12,4 km", x:3}
+  };
+  var PRIORIDADES=[
+    {id:0, nome:"Vermelho", sim:"★", desc:"Emergência", tempo:0, cor:"#dc2626", classe:"t-vermelho", letra:"V"},
+    {id:1, nome:"Laranja", sim:"▲", desc:"Muito urgente", tempo:10, cor:"#f97316", classe:"t-vermelho", letra:"L"},
+    {id:2, nome:"Amarelo", sim:"◆", desc:"Urgente", tempo:60, cor:"#eab308", classe:"t-amarelo", letra:"A"},
+    {id:3, nome:"Verde", sim:"●", desc:"Pouco urgente", tempo:120, cor:"#16a34a", classe:"t-verde", letra:"G"},
+    {id:4, nome:"Azul", sim:"■", desc:"Não urgente", tempo:240, cor:"#3b82f6", classe:"t-azul", letra:"Z"}
+  ];
+  var SALAS=["Consultório 01","Consultório 02","Consultório 03","Sala de Medicação","Observação"];
+  var estado={
+    unidade:"brotas",
+    prioridadeTriagem:2,
+    contador:142,
+    chamada:{senha:"M-042", sala:"Consultório 03", prio:2, nome:"Marcos Silva Santos"},
+    ultimaSenha:"—",
+    tickets:[
+      {senha:"M-041", nome:"Ana Paula Ribeiro", prio:2, hora:"08:12", unidade:"brotas"},
+      {senha:"V-017", nome:"João Batista Souza", prio:3, hora:"08:20", unidade:"brotas"},
+      {senha:"M-042", nome:"Marcos Silva Santos", prio:2, hora:"08:31", unidade:"brotas"}
+    ],
+    meusTickets:[]
+  };
+  try{
+    var salvo=localStorage.getItem("acolhesus-estado");
+    if(salvo){var s=JSON.parse(salvo); if(s && s.tickets) estado=Object.assign(estado,s);}
+  }catch(e){}
+  function salvar(){try{localStorage.setItem("acolhesus-estado",JSON.stringify({tickets:estado.tickets,contador:estado.contador,ultimaSenha:estado.ultimaSenha,meusTickets:estado.meusTickets}))}catch(e){}}
+
+  /* ============ utilidades ============ */
+  var toastEl=$("toast"), toastTimer;
+  function toast(txt,tipo){
+    toastEl.textContent=txt;
+    toastEl.className="toast on"+(tipo?" "+tipo:"");
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){toastEl.className="toast"+(tipo?" "+tipo:"")},3600);
+  }
+  function prio(id){return PRIORIDADES[id]||PRIORIDADES[2]}
+  function filaDaUnidade(u){
+    var c=[0,0,0,0,0];
+    estado.tickets.forEach(function(t){if(t.unidade===u)c[t.prio]++});
+    return c;
+  }
+  function totalFila(u){return filaDaUnidade(u).reduce(function(a,b){return a+b},0)}
+  function tempoEstimado(u){
+    var c=filaDaUnidade(u), min=UPAS[u].espera*0.6;
+    c.forEach(function(q,i){min+=q*[0,4,9,16,26][i]});
+    return Math.max(6,Math.round(min));
+  }
+  function statusUpa(oc){return oc>=80?{t:"Crítico",c:"t-vermelho",f:"f-vermelho"}:oc>=55?{t:"Moderado",c:"t-amarelo",f:"f-amarelo"}:{t:"Fluído",c:"t-verde",f:"f-verde"}}
+  function melhorUnidade(atual){
+    var melhor=null;
+    Object.keys(UPAS).forEach(function(k){
+      if(k===atual)return;
+      var pts=tempoEstimado(k)+UPAS[k].x*0.5;
+      if(!melhor||pts<melhor.pts)melhor={id:k,pts:pts};
+    });
+    return melhor;
+  }
+
+  /* ============ navegação ============ */
+  var abas=d.querySelectorAll(".aba"), views=d.querySelectorAll(".view");
+  function irPara(v){
+    if(!$("v-"+v))v="paciente";
+    views.forEach(function(x){x.classList.toggle("on",x.id==="v-"+v)});
+    abas.forEach(function(a){a.classList.toggle("on",a.dataset.v===v)});
+    d.title=(v.charAt(0).toUpperCase()+v.slice(1))+" · AcolheSUS Salvador";
+    window.scrollTo({top:0,behavior:"smooth"});
+    revelar();
+  }
+  abas.forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();location.hash=a.dataset.v})});
+  window.addEventListener("hashchange",function(){irPara(location.hash.replace("#",""))});
+  irPara(location.hash.replace("#","")||"paciente");
+
+  /* ============ acessibilidade ============ */
+  var contraste=false;
+  $("btn-contraste").addEventListener("click",function(){contraste=!contraste;d.documentElement.style.filter=contraste?"contrast(1.35) saturate(1.1)":""});
+  var fs=100;
+  $("btn-fonte").addEventListener("click",function(){fs=fs>=130?100:fs+10;d.documentElement.style.fontSize=fs+"%"});
+  $("btn-vlibras").addEventListener("click",function(){toast("VLibras ativo: o painel da sala de espera sinaliza as chamadas.","ok")});
+
+  /* ============ QR decorativo ============ */
+  function desenhaQR(el){
+    if(!el)return;
+    var n=11, seed=el.id.length*97+13, html="";
+    for(var i=0;i<n*n;i++){
+      seed=(seed*1103515245+12345)%2147483648;
+      var r=(seed>>16)&1;
+      var canto=(i<n*3&&i%n<3)||(i<n*3&&i%n>=n-3)||(i>=n*(n-3)&&i%n<3);
+      html+='<i class="'+((canto||r)?"":"v")+'"></i>';
+    }
+    el.innerHTML=html;
+  }
+
+  /* ============ unidade ============ */
+  var selUnidade=$("unidade");
+  function aplicarUnidade(){
+    var u=estado.unidade=selUnidade.value;
+    ["pac-unidade","tk-unidade","mon-unidade"].forEach(function(id){if($(id))$(id).textContent=UPAS[u].nome});
+    $("mon-titulo").textContent=UPAS[u].nome+" — Sala de espera";
+    renderPaciente(); renderRecepcao(); renderRede();
+  }
+  selUnidade.addEventListener("change",aplicarUnidade);
+
+  /* ============ PACIENTE ============ */
+  function renderFilaPaciente(){
+    var c=filaDaUnidade(estado.unidade);
+    $("p-fila").innerHTML=PRIORIDADES.map(function(p,i){
+      return '<div class="fila-linha"><span><span class="dot-p" style="background:'+p.cor+'"></span>'+p.sim+' '+p.nome+' · '+p.desc+'</span><b>'+c[i]+'</b></div>';
+    }).join("")+
+    '<div class="fila-linha" style="background:var(--azul-50)"><span style="font-weight:700;color:var(--azul-esc)">Total aguardando</span><b style="color:var(--azul)">'+c.reduce(function(a,b){return a+b},0)+'</b></div>'+
+    '<div class="fila-linha"><span style="font-weight:700">Tempo estimado de espera</span><b>~'+tempoEstimado(estado.unidade)+' min</b></div>';
+  }
+  function renderUpasPaciente(){
+    $("p-upas").innerHTML=Object.keys(UPAS).map(function(k){
+      var u=UPAS[k], st=statusUpa(u.ocupacao), atual=k===estado.unidade;
+      return '<button type="button" class="upa '+(atual?"atual":"")+'" data-upa="'+k+'">'+
+        '<div class="topo"><div><b>'+u.nome+'</b><span class="end">'+u.end+' · '+u.dist+'</span></div>'+
+        '<span class="tag '+st.c+'">'+(atual?"Sua unidade":st.t)+'</span></div>'+
+        '<div class="dados"><div><span style="font-size:.7rem">Espera</span><b class="'+(atual?"dest":"")+'">'+tempoEstimado(k)+' min</b></div>'+
+        '<div><span style="font-size:.7rem">Na fila</span><b>'+totalFila(k)+'</b></div>'+
+        '<div><span style="font-size:.7rem">Ocupação</span><b>'+u.ocupacao+'%</b></div></div>'+
+        '<div class="barra"><i class="'+st.f+'" style="width:'+u.ocupacao+'%"></i></div></button>';
+    }).join("");
+    $("p-upas").querySelectorAll("[data-upa]").forEach(function(b){
+      b.addEventListener("click",function(){
+        selUnidade.value=b.dataset.upa; aplicarUnidade();
+        toast("Unidade selecionada: "+UPAS[b.dataset.upa].nome);
+      });
+    });
+  }
+  function renderPaciente(){renderFilaPaciente();renderUpasPaciente()}
+
+  var meuTicket=null;
+  function atualizarTicket(){
+    if(!meuTicket)return;
+    var u=estado.unidade, c=filaDaUnidade(u), p=prio(meuTicket.prio);
+    var posicao=0;
+    estado.tickets.forEach(function(t){
+      if(t.prio<meuTicket.prio||(t.prio===meuTicket.prio&&t.hora<=meuTicket.hora&&t.senha!==meuTicket.senha))posicao++;
+    });
+    var espera=tempoEstimado(u);
+    $("tk-senha").textContent=meuTicket.senha;
+    $("tk-tempo").textContent="~"+espera+" min";
+    $("tk-pos").textContent=(posicao+1)+"º";
+    $("tk-prioridade").textContent=p.sim+" "+p.nome;
+    $("tk-progresso").style.width=Math.max(8,Math.min(96,100-(posicao+1)*12))+"%";
+    var redir=melhorUnidade(u), tempoAtual=espera, tempoMelhor=redir?tempoEstimado(redir.id):0;
+    if(redir && tempoMelhor<tempoAtual-8 && p.id>=3){
+      $("tk-redir").classList.remove("escondido");
+      $("tk-redir-txt").innerHTML="A <b>"+UPAS[redir.id].nome+"</b> está a "+UPAS[redir.id].dist+" com espera estimada de <b>"+tempoMelhor+" min</b> (economia de "+(tempoAtual-tempoMelhor)+" min). Seu caso é classificado como "+p.nome+".";
+    } else { $("tk-redir").classList.add("escondido"); }
+  }
+  $("p-emitir").addEventListener("click",function(){
+    var nome=$("p-nome").value.trim();
+    var cpf=$("p-cpf").value.trim();
+    if(!nome){$("p-msg").className="msg erro";$("p-msg").textContent="Informe o nome do cidadão para emitir a senha.";return}
+    if(!cpf){$("p-msg").className="msg erro";$("p-msg").textContent="Informe o CPF ou o CNS.";return}
+    var marcas=[]; d.querySelectorAll("#painel-checkin .checks input:checked").forEach(function(i){marcas.push(i.value)});
+    var p=2; if(marcas.length)p=1;
+    estado.contador++;
+    var senha=prio(p).letra+"-"+estado.contador;
+    var agora=new Date();
+    var hora=("0"+agora.getHours()).slice(-2)+":"+("0"+agora.getMinutes()).slice(-2);
+    meuTicket={senha:senha,nome:nome,prio:p,hora:hora,unidade:estado.unidade,marcas:marcas};
+    estado.tickets.push(meuTicket); estado.ultimaSenha=senha; estado.meusTickets.push(meuTicket); salvar();
+    $("painel-checkin").style.display="none";
+    $("painel-ticket").style.display="block";
+    desenhaQR($("tk-qr"));
+    $("p-msg").textContent="";
+    $("tk-aviso").className="aviso aviso-ok";
+    $("tk-aviso").textContent="✅ Check-in confirmado. QR Code enviado por WhatsApp para "+(($("p-tel").value.trim())||"o telefone informado")+".";
+    atualizarTicket(); renderRecepcao(); renderFilaPaciente(); renderRede();
+    toast("Senha "+senha+" emitida para "+nome+".","ok");
+  });
+  $("p-novo").addEventListener("click",function(){
+    meuTicket=null;
+    $("painel-checkin").style.display="block"; $("painel-ticket").style.display="none";
+    $("p-nome").value="";$("p-cpf").value="";$("p-tel").value="";
+  });
+  $("tk-redir-btn").addEventListener("click",function(){
+    var r=melhorUnidade(estado.unidade); if(!r)return;
+    selUnidade.value=r.id; aplicarUnidade();
+    if(meuTicket)meuTicket.unidade=r.id;
+    atualizarTicket(); salvar();
+    toast("Você foi redirecionado para "+UPAS[r.id].nome+".","ok");
+  });
+
+  /* ============ RECEPÇÃO ============ */
+  function renderTabelaRecepcao(){
+    var lista=estado.tickets.filter(function(t){return t.unidade===estado.unidade})
+      .slice().sort(function(a,b){return a.prio-b.prio});
+    var tb=$("r-tabela");
+    if(!lista.length){tb.innerHTML='<tr><td colspan="5" class="vazio">Nenhum paciente aguardando nesta unidade.</td></tr>';return}
+    tb.innerHTML=lista.map(function(t){
+      var p=prio(t.prio);
+      return '<tr><td><b>'+t.senha+'</b></td><td>'+t.nome+'</td>'+
+        '<td><span class="dot-p" style="background:'+p.cor+'"></span>'+p.nome+'</td>'+
+        '<td>'+t.hora+'</td>'+
+        '<td><button class="btn btn-g" style="padding:6px 12px;font-size:.76rem" data-chamar="'+t.senha+'">Chamar</button></td></tr>';
+    }).join("");
+    tb.querySelectorAll("[data-chamar]").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=estado.tickets.filter(function(x){return x.senha===b.dataset.chamar})[0];
+        if(!t)return;
+        estado.chamada={senha:t.senha,sala:SALAS[t.prio%SALAS.length],prio:t.prio,nome:t.nome};
+        renderMonitor(); toast("Chamando "+t.senha+" · "+t.nome,"ok");
+      });
+    });
+  }
+  function renderUpasRecepcao(){
+    $("r-upas").innerHTML=Object.keys(UPAS).map(function(k){
+      var u=UPAS[k], st=statusUpa(u.ocupacao), atual=k===estado.unidade;
+      return '<button type="button" class="upa '+(atual?"atual":"")+'" data-redir="'+k+'">'+
+        '<div class="topo"><div><b>'+u.nome+'</b><span class="end">'+u.dist+' desta unidade</span></div>'+
+        '<span class="tag '+st.c+'">'+(atual?"Local":st.t)+'</span></div>'+
+        '<div class="dados"><div><span style="font-size:.7rem">Espera</span><b>'+tempoEstimado(k)+' min</b></div>'+
+        '<div><span style="font-size:.7rem">Na fila</span><b>'+totalFila(k)+'</b></div></div>'+
+        '<div class="barra"><i class="'+st.f+'" style="width:'+u.ocupacao+'%"></i></div></button>';
+    }).join("");
+    $("r-upas").querySelectorAll("[data-redir]").forEach(function(b){
+      b.addEventListener("click",function(){
+        $("r-redir-msg").className="msg ok";
+        $("r-redir-msg").textContent="Encaminhamento sugerido: "+UPAS[b.dataset.redir].nome+" ("+tempoEstimado(b.dataset.redir)+" min de espera).";
+        toast("Sugestão de encaminhamento registrada.");
+      });
+    });
+  }
+  function renderRecepcao(){renderTabelaRecepcao();renderUpasRecepcao()}
+  $("r-emitir").addEventListener("click",function(){
+    var nome=$("r-nome").value.trim();
+    if(!nome){$("r-msg").className="msg erro";$("r-msg").textContent="Informe o nome do cidadão.";return}
+    var marcas=[]; d.querySelectorAll("#v-recepcao .checks input:checked").forEach(function(i){marcas.push(i.value)});
+    var p=marcas.length?1:2; estado.contador++;
+    var senha=prio(p).letra+"-"+estado.contador;
+    var agora=new Date();
+    var hora=("0"+agora.getHours()).slice(-2)+":"+("0"+agora.getMinutes()).slice(-2);
+    estado.tickets.push({senha:senha,nome:nome,prio:p,hora:hora,unidade:estado.unidade,marcas:marcas});
+    estado.ultimaSenha=senha; salvar();
+    $("r-ultima").textContent=senha+" · "+nome;
+    $("r-msg").className="msg ok"; $("r-msg").textContent="Senha "+senha+" emitida. QR Code enviado por WhatsApp.";
+    $("r-nome").value="";$("r-cpf").value="";
+    renderRecepcao(); renderFilaPaciente(); renderRede();
+    toast("Senha "+senha+" emitida.","ok");
+  });
+  $("r-imprimir").addEventListener("click",function(){
+    if(estado.ultimaSenha==="—"){toast("Nenhuma senha emitida nesta sessão.","erro");return}
+    toast("Reimpressão enviada para a impressora do balcão.","ok");
+  });
+
+  /* ============ MONITOR ============ */
+  function renderMonitor(){
+    var c=estado.chamada, p=prio(c.prio);
+    $("mon-num").textContent=c.senha;
+    $("mon-prioridade").textContent=p.sim+" "+p.nome+" · "+p.desc;
+    $("mon-prioridade").style.background="transparent";
+    $("mon-prioridade").style.color=p.cor;
+    $("mon-sala").textContent=c.sala; $("mon-sala2").textContent=c.sala;
+    $("mon-libras").textContent="Sinalizando a senha "+c.senha;
+    $("mon-chamada").style.borderLeftColor=p.cor;
+  }
+  $("mon-proximo").addEventListener("click",function(){
+    var lista=estado.tickets.filter(function(t){return t.unidade===estado.unidade}).sort(function(a,b){return a.prio-b.prio});
+    var prox=lista.filter(function(t){return t.senha!==estado.chamada.senha})[0];
+    if(!prox){toast("Não há outros pacientes na fila desta unidade.","erro");return}
+    estado.chamada={senha:prox.senha,sala:SALAS[prox.prio%SALAS.length],prio:prox.prio,nome:prox.nome};
+    renderMonitor(); toast("Chamando "+prox.senha+" · "+prox.nome,"ok");
+  });
+  setInterval(function(){
+    var a=new Date();
+    $("mon-relogio").textContent=[a.getHours(),a.getMinutes(),a.getSeconds()].map(function(x){return ("0"+x).slice(-2)}).join(":");
+  },1000);
+
+  /* ============ TRIAGEM ============ */
+  function renderCls(){
+    $("tr-cls").innerHTML=PRIORIDADES.map(function(p,i){
+      return '<button type="button" data-i="'+i+'" class="'+(i===estado.prioridadeTriagem?"sel":"")+'" style="background:'+p.cor+';color:'+(i===2?"#0f172a":"#fff")+'">'+
+        '<span class="simbolo">'+p.sim+'</span><b>'+p.nome+'</b><span>'+p.desc+'</span><small>'+(p.tempo===0?"imediato":p.tempo+" min")+'</small></button>';
+    }).join("");
+    $("tr-cls").querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){estado.prioridadeTriagem=+b.dataset.i;$("tr-msg").textContent="";renderCls()});
+    });
+  }
+  $("tr-confirmar").addEventListener("click",function(){
+    var p=prio(estado.prioridadeTriagem);
+    $("tr-msg").className="msg ok";
+    $("tr-msg").textContent="M-042 classificado como "+p.nome+" ("+p.desc+"). Atendimento em até "+(p.tempo===0?"imediato":p.tempo+" min")+".";
+    toast("Classificação registrada: "+p.nome,"ok");
+  });
+
+  /* ============ PRONTUÁRIO ============ */
+  $("pr-finalizar").addEventListener("click",function(){
+    $("pr-msg").className="msg ok";
+    $("pr-msg").textContent="Receita assinada digitalmente e enviada ao paciente por WhatsApp e e-mail.";
+    toast("Receita enviada ao paciente.","ok");
+  });
+
+  /* ============ REDE ============ */
+  function renderRede(){
+    var melhor=melhorUnidade(estado.unidade);
+    $("rede-resumo").innerHTML=Object.keys(UPAS).map(function(k){
+      var u=UPAS[k], st=statusUpa(u.ocupacao);
+      return '<div class="fila-linha"><span><span class="dot-p '+st.f+'"></span>'+u.nome+'</span><b>~'+tempoEstimado(k)+' min</b></div>';
+    }).join("");
+    $("rede-upas").innerHTML=Object.keys(UPAS).map(function(k){
+      var u=UPAS[k], st=statusUpa(u.ocupacao), atual=k===estado.unidade;
+      return '<div class="upa '+(atual?"atual":"")+'">'+
+        '<div class="topo"><div><b>'+u.nome+'</b><span class="end">'+u.end+'</span></div>'+
+        '<span class="tag '+st.c+'">'+st.t+'</span></div>'+
+        '<div class="dados"><div><span style="font-size:.7rem">Espera</span><b>'+tempoEstimado(k)+' min</b></div>'+
+        '<div><span style="font-size:.7rem">Na fila</span><b>'+totalFila(k)+'</b></div>'+
+        '<div><span style="font-size:.7rem">Ocupação</span><b>'+u.ocupacao+'%</b></div></div>'+
+        '<div class="barra"><i class="'+st.f+'" style="width:'+u.ocupacao+'%"></i></div></div>';
+    }).join("");
+    if(melhor){
+      $("rede-desvio-txt").innerHTML="Desvio ativo: casos leves estão sendo sugeridos para a <b>"+UPAS[melhor.id].nome+"</b>, com espera estimada de <b>"+tempoEstimado(melhor.id)+" min</b>. Redirecionamento por SMS e WhatsApp.";
+    }
+  }
+
+  /* ============ sessão ============ */
+  var s=900;
+  setInterval(function(){
+    if(s>0)s--;
+    var txt=Math.floor(s/60)+":"+("0"+(s%60)).slice(-2);
+    if($("sessao"))$("sessao").textContent=txt;
+    if($("sessao2"))$("sessao2").textContent=txt;
+  },1000);
+
+  /* ============ revelar ============ */
+  function revelar(){
+    var itens=d.querySelectorAll(".view.on .rev:not(.vis)");
+    if("IntersectionObserver" in window){
+      var io=new IntersectionObserver(function(ent){
+        ent.forEach(function(e){if(e.isIntersecting){e.target.classList.add("vis");io.unobserve(e.target)}});
+      },{threshold:.1});
+      itens.forEach(function(el,i){el.style.transitionDelay=(i%3*70)+"ms";io.observe(el)});
+    } else itens.forEach(function(el){el.classList.add("vis")});
+  }
+
+  /* ============ inicialização ============ */
+  desenhaQR($("tk-qr"));
+  renderCls();
+  aplicarUnidade();
+  renderMonitor();
+  revelar();
+  setInterval(function(){atualizarTicket();renderFilaPaciente()},20000);
+})();
+</script>
+</body>
+</html>
